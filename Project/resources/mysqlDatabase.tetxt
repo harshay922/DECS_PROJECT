@@ -1,0 +1,31 @@
+CREATE DATABASE keyvalueDB;
+Query OK, 1 row affected (0.02 sec)
+
+mysql> USE keyvalueDB;
+Database changed
+
+mysql> SHOW TABLES;
+Empty set (0.00 sec)
+
+mysql> CREATE TABLE kvstore(k VARCHAR(255) PRIMARY KEY, v TEXT NOT NULL);
+Query OK, 0 rows affected (0.10 sec)
+
+mysql> DESCRIBE kvstore;
++-------+--------------+------+-----+---------+-------+
+| Field | Type         | Null | Key | Default | Extra |
++-------+--------------+------+-----+---------+-------+
+| k     | varchar(255) | NO   | PRI | NULL    |       |
+| v     | text         | NO   |     | NULL    |       |
++-------+--------------+------+-----+---------+-------+
+2 rows in set (0.01 sec)
+
+mysql> SELECT * FROM kvstore;
+Empty set (0.01 sec)
+
+mysql> SELECT * FROM kvstore;
++------+---------+
+| k    | v       |
++------+---------+
+| name | harshay |
++------+---------+
+1 row in set (0.02 sec)

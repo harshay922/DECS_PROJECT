@@ -15,7 +15,7 @@ int main() {
     Server svr;
 
     svr.Get("/hi", [](const Request&, Response& res) {
-        res.set_content("Hello World!", "text/plain");
+        res.set_content("shakehand with client", "text/plain");
     });
 
     svr.Get("/set", [&](const Request& req, Response& res) {
