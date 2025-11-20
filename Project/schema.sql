@@ -1,0 +1,8 @@
+CREATE DATABASE keyvalueDB;
+USE keyvalueDB;
+
+CREATE TABLE kvstore (
+    k VARCHAR(255) PRIMARY KEY,
+    v VARCHAR(255)
+);
+

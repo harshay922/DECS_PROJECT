@@ -1,4 +1,5 @@
 #include "../include/httplib.h"
+#include "../include/cache.h"
 #include <iostream>
 #include <mysql/mysql.h>
 #include <mutex>
@@ -45,6 +46,9 @@ int main(int argc, char *argv[])
 
     cout << "Connected to MySQL successfully!\n";
 
+    //CREATE Cache
+    LRUCache cache(5);
+
     // HTTP
     Server svr;
 
@@ -67,6 +71,8 @@ int main(int argc, char *argv[])
 
     string key = req.get_param_value("key");
     string value = req.get_param_value("value");
+
+    cache.put(key, value);
 
     string sql = "INSERT INTO kvstore (k, v) VALUES ('" + key + "', '" + value +
                  "') ON DUPLICATE KEY UPDATE v='" + value + "';";
@@ -93,6 +99,19 @@ int main(int argc, char *argv[])
 
     string key = req.get_param_value("key");
 
+    string value;
+
+      if (cache.get(key, value)) 
+        {
+            cout << "CACHE HIT for key = " << key << "\n";
+            res.set_content(value + "\n", "text/plain");
+            return;
+        }
+
+        cout << "CACHE MISS for key = " << key << "\n";
+
+        //now fetch from database
+
     string sql = "SELECT v FROM kvstore WHERE k='" + key + "';";
 
     MYSQL_RES* result = nullptr;
@@ -115,13 +134,30 @@ int main(int argc, char *argv[])
     MYSQL_ROW row = mysql_fetch_row(result);
 
     if (row) {
-        res.set_content(row[0] + string("\n"), "text/plain");
+
+        value =row[0];
+
+        mysql_free_result(result);
+
+        cache.put(key, value);
+        
+        res.set_content(value + string("\n"), "text/plain");
     } else {
         res.set_content("NOT_FOUND\n", "text/plain");
+        mysql_free_result(result);
+        return;
     }
 }
 
-    mysql_free_result(result); });
+     
+
+    //store in cache
+
+     cache.put(key, value);
+
+        res.set_content(value + "\n", "text/plain"); 
+
+});
 
     // DELETE query
 
@@ -138,6 +174,12 @@ int main(int argc, char *argv[])
     string key = req.get_param_value("key");
 
     cout << "DELETE called for key = " << key << "\n";
+
+    //firstly remove from cache
+
+     cache.remove(key);
+
+     //remove from database
 
     string sql = "DELETE FROM kvstore WHERE k='" + key + "';";
 
