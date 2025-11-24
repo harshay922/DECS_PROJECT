@@ -1,0 +1,2 @@
+workload,threads,throughput,p50_latency,p90_latency,p95_latency,p99_latency,total_ops,errors,cache_hit_ratio,cache_evictions,cpu_usage,memory_usage,network_throughput
+put_all,10,1500.75,22.5,45.2,67.8,120.3,450225,0,0.0,2500,75.2,512,15.2

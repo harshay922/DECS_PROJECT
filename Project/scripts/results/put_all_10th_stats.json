@@ -1,0 +1,24 @@
+{
+  "cache": {
+    "hits": 0,
+    "misses": 450225,
+    "evictions": 2500,
+    "size": 1000,
+    "max_size": 1000
+  },
+  "server": {
+    "uptime": 300,
+    "requests_processed": 450225,
+    "avg_response_time": 25.4,
+    "cpu_usage": 75.2,
+    "memory_usage": 512,
+    "database_connections": 10
+  },
+  "workload": {
+    "type": "put_all",
+    "keyspace": 10000,
+    "popular_keys": 100,
+    "threads": 10,
+    "duration": 300
+  }
+}

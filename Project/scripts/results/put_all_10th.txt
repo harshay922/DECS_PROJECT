@@ -1,0 +1,24 @@
+CS744 Load Generator Results
+============================
+Workload: put_all
+Threads: 10
+Duration: 300 seconds
+Keyspace: 10000
+Popular Keys: 100
+
+Throughput: 1500.75 ops/sec
+Total Ops: 450225
+Errors: 0
+
+Latency Percentiles:
+P50=22.5ms P90=45.2ms P95=67.8ms P99=120.3ms
+
+Cache Statistics:
+Hit Ratio: 0.0%
+Miss Ratio: 100.0%
+Evictions: 2500
+
+Server Statistics:
+CPU Usage: 75.2%
+Memory Usage: 512MB
+Network Throughput: 15.2 MB/s

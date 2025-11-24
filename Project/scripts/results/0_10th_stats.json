@@ -1,0 +1,12 @@
+{
+  "cache_capacity": 1000,
+  "cache_size": 1000,
+  "cache_hits": 0,
+  "cache_misses": 0,
+  "cache_evictions": 27685,
+  "cache_hit_ratio": 0.000000,
+  "total_get_requests": 0,
+  "total_set_requests": 31685,
+  "total_delete_requests": 0,
+  "total_compute_requests": 0
+}

@@ -4,7 +4,9 @@
 #include <iostream>
 #include <unordered_map>
 #include <string>
+#include <list>
 #include <mutex>
+#include <atomic>
 
 using namespace std;
 
@@ -26,6 +28,10 @@ private:
     Node *head; 
     Node *tail;  // (Least Recently Used)
     mutex lock;
+
+    atomic<long> hits{0};
+atomic<long> misses{0};
+atomic<long> evictions{0};
 
     // Move node to the front 
 
@@ -61,14 +67,24 @@ private:
 public:
     LRUCache(size_t cap) : capacity(cap), head(nullptr), tail(nullptr) {}
 
+    long getHits() const { return hits.load(); }
+long getMisses() const { return misses; }
+long getEvictions() const { return evictions; }
+size_t currentSize() const { return cache_map.size(); }
+size_t getCapacity() const { return capacity; }
+
     // GET operation
 
     bool get(const string &key, string &value) {
         lock_guard<mutex> guard(lock);
 
         auto it = cache_map.find(key);
-        if (it == cache_map.end())
+        if (it == cache_map.end()){
+        misses++;
             return false; // MISS
+            }
+
+            hits++;
 
         Node *node = it->second;
         value = node->value;
@@ -97,7 +113,9 @@ public:
 
         if (cache_map.size() >= capacity) {
             Node *lru = tail;
-            cout << "LRU EVICT: " << lru->key << "\n";
+            evictions++;
+        
+            // cout << "LRU EVICT: " << lru->key << "\n";
 
             cache_map.erase(lru->key);
 

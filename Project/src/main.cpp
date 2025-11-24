@@ -10,6 +10,23 @@ using namespace httplib;
 
 mutex db_lock;
 
+// make counters thread-safe
+
+atomic<long> total_get_requests{0};
+atomic<long> total_set_requests{0};
+atomic<long> total_delete_requests{0};
+atomic<long> total_compute_requests{0};
+
+
+// CPU heavy function (Fibonacci)
+long long fib(int n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+
+
+
 int main(int argc, char *argv[])
 {
 
@@ -47,7 +64,7 @@ int main(int argc, char *argv[])
     cout << "Connected to MySQL successfully!\n";
 
     //CREATE Cache
-    LRUCache cache(5);
+    LRUCache cache(5000);
 
     // HTTP
     Server svr;
@@ -62,6 +79,10 @@ int main(int argc, char *argv[])
     svr.Post("/set", [&](const Request &req, Response &res)
              {
                 cout << "POST /set reached!!\n" ;
+
+                total_set_requests++;
+
+
 
     if (!req.has_param("key") || !req.has_param("value")) {
         res.set_content("Missing key or value\n", "text/plain");
@@ -92,6 +113,9 @@ int main(int argc, char *argv[])
     svr.Get("/get", [&](const Request &req, Response &res)
             {
 
+                total_get_requests++;
+                cout << "GET /get reached!!\n" ;
+
     if (!req.has_param("key")) {
         res.set_content("Missing key\n", "text/plain");
         return;
@@ -114,17 +138,18 @@ int main(int argc, char *argv[])
 
     string sql = "SELECT v FROM kvstore WHERE k='" + key + "';";
 
-    MYSQL_RES* result = nullptr;
-
+    
     {
-    lock_guard<mutex> guard(db_lock);
+        lock_guard<mutex> guard(db_lock);
+        
+        if (mysql_query(conn, sql.c_str())) {
+            res.set_content("DB Error\n", "text/plain");
+            return;
+        }
+        
+        MYSQL_RES* result = mysql_store_result(conn);
 
-    if (mysql_query(conn, sql.c_str())) {
-        res.set_content("DB Error\n", "text/plain");
-        return;
-    }
-
-    result = mysql_store_result(conn);
+   
 
      if (!result) {
             res.set_content("DB Error\n", "text/plain");
@@ -139,23 +164,18 @@ int main(int argc, char *argv[])
 
         mysql_free_result(result);
 
+        //store in cache
+
         cache.put(key, value);
         
         res.set_content(value + string("\n"), "text/plain");
+        return;
     } else {
-        res.set_content("NOT_FOUND\n", "text/plain");
         mysql_free_result(result);
+        res.set_content("NOT_FOUND\n", "text/plain");
         return;
     }
-}
-
-     
-
-    //store in cache
-
-     cache.put(key, value);
-
-        res.set_content(value + "\n", "text/plain"); 
+} 
 
 });
 
@@ -165,6 +185,9 @@ int main(int argc, char *argv[])
                {
 
                 cout << "DELETE /delete reached!!\n" ;
+
+                total_delete_requests++;
+
 
     if (!req.has_param("key")) {
         res.set_content("Missing key\n", "text/plain");
@@ -200,9 +223,59 @@ int main(int argc, char *argv[])
 
 } });
 
+// /stats endpoint
+
+svr.Get("/stats", [&](const Request&, Response& res) {
+
+    // Build JSON 
+
+    res.set_header("Content-Type", "application/json");
+
+
+    string json = "{\n";
+    json += "  \"cache_capacity\": " + to_string(cache.getCapacity()) + ",\n";
+    json += "  \"cache_size\": " + to_string(cache.currentSize()) + ",\n";
+    json += "  \"cache_hits\": " + to_string(cache.getHits()) + ",\n";
+    json += "  \"cache_misses\": " + to_string(cache.getMisses()) + ",\n";
+    json += "  \"cache_evictions\": " + to_string(cache.getEvictions()) + ",\n";
+
+    long total_cache = cache.getHits() + cache.getMisses();
+    double hit_ratio = (total_cache == 0) ? 0.0 :
+                        ((double)cache.getHits() / total_cache);
+
+    json += "  \"cache_hit_ratio\": " + to_string(hit_ratio) + ",\n";
+
+        json += "  \"total_get_requests\": " + to_string(total_get_requests) + ",\n";
+    json += "  \"total_set_requests\": " + to_string(total_set_requests) + ",\n";
+    json += "  \"total_delete_requests\": " + to_string(total_delete_requests) + ",\n";
+    json += "  \"total_compute_requests\": " + to_string(total_compute_requests) + "\n";
+
+
+
+    json += "}\n";
+    
+
+    res.set_content(json, "application/json");
+});
+
+//CPU BOUND WORKLOAD
+
+svr.Get("/compute", [&](const Request &req, Response &res) {
+   total_compute_requests++;
+        cout << "CPU COMPUTE /compute\n";
+
+        long long result = fib(35); // heavy calculation
+
+        res.set_content("FIB=" + to_string(result), "text/plain");
+});
+
+
     // SERVER START HERE
 
     cout << "Starting server...\n";
     bool ok = svr.listen("0.0.0.0", 8080);
     cout << "Server exited with: " << ok << "\n";
+
+    mysql_close(conn);
+    return ok ? 0 : 1;
 }
